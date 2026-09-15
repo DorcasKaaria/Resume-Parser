@@ -2,7 +2,7 @@ import spacy
 from pypdf import PdfReader
 
 
-MODEL_PATH = "models/output/model-best"
+MODEL_PATH = "models/output/model-best-trf"
 PDF_PATH = "otieno_resume.pdf"
 
 

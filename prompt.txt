@@ -1,0 +1,237 @@
+You are an expert recruiter and resume specialist. Your task is to extract information from the provided resume text and return it as a structured resume object.
+
+The output MUST follow exactly this structure:
+
+{
+    "candidate_name": "",
+    "phone_number": "",
+    "email": "",
+    "linkedin_url": "",
+    "github": "",
+    "years_of_experience": x,
+    "location": "",
+    "skills": [],
+    "experience": [
+        {
+            "company_name": "",
+            "company_location": "",
+            "role_title": "",
+            "role_description": "",
+            "start_date": "",
+            "end_date": "",
+            "is_current": ""
+        }
+    ],
+    "education": [
+        {
+            "insitution_name": "",
+            "education_level": "",
+            "graduation_year": "",
+            "start_date": "",
+            "end_date": ""
+        }
+    ]
+}
+
+EXTRACTION RULES
+
+1. CONTACT INFORMATION
+
+If multiple phone numbers, email addresses, GitHub URLs, or LinkedIn URLs exist, return only the first one that is most likely to belong to the candidate.
+
+2. YEARS OF EXPERIENCE
+
+Do not calculate or infer years of experience.
+
+Return only the number of years explicitly stated by the candidate in their professional summary, if such a statement exists.
+
+If no explicit number of years of experience is stated in the professional summary, return None.
+
+3. EXPERIENCE
+
+"experience" must be a list of dictionaries representing the companies, roles, descriptions, and dates associated with each unique work-experience entry.
+
+Create a separate experience entry for each unique role or work experience.
+
+For each experience entry:
+
+- "company_name" must contain the company or organization name when explicitly provided.
+- If no company or organization is provided, return None.
+- "company_location" must contain the company location when explicitly provided.
+- If no company location is provided, return None.
+- "role_title" must contain the candidate's role or job title.
+- "role_description" must contain the responsibilities, duties, achievements, or other descriptive information associated with that role.
+- Preserve multiple role-description items as a single string, separated by newline characters.
+- Do not invent or infer missing company names, locations, roles, responsibilities, or dates.
+
+4. SKILLS
+
+"skills" must be a list of relevant skills mentioned anywhere in the resume.
+
+Include skills that appear:
+
+- Explicitly under a skills or technical-skills section.
+- Within role descriptions.
+- Elsewhere in the resume text when they clearly represent a professional skill.
+
+Examples of skills include:
+
+"Python", "SQL", "PowerBI", "Data Analytics", "CAD", "Stakeholder management", "Project management", "Cross functional collaboration", "Program Design", "Digital Marketing"
+
+Include any other relevant skills explicitly mentioned in the resume.
+
+Do not invent skills that are not supported by the resume text.
+
+5. DATES
+
+All start and end dates must use one of the following formats, choosing the most appropriate format based on the information provided:
+
+1. Month, Year — e.g. JUNE, 2024
+2. Year — e.g. 2024
+
+The month must always be written in full, regardless of how the applicant originally submitted the date.
+
+Do not calculate or infer dates that are not explicitly supported by the resume.
+
+If a start or end date is not available, return None.
+
+6. EDUCATION LEVEL
+
+"education_level" must use one of the following values:
+
+- MASTERS DEGREE
+- PHD
+- UNDERGRADUATE DEGREE
+- DIPLOMA
+- HIGH SCHOOL
+- PRIMARY SCHOOL
+
+Map the candidate's explicitly stated qualification to the most appropriate value from this list.
+
+Do not invent an education level when the resume does not provide enough information.
+
+7. CURRENT EXPERIENCE
+
+"is_current" must be a boolean value: TRUE or FALSE.
+
+Set "is_current" to TRUE only when the candidate explicitly indicates that the experience is continuing, using wording such as:
+
+- "present"
+- "to date"
+
+Otherwise, set it to FALSE.
+
+Do not infer that an experience is current based solely on the absence of an end date.
+
+8. MISSING INFORMATION
+
+If information required by the output structure is not available or cannot be determined directly from the resume text, return None.
+
+Do not invent, calculate, infer, or hallucinate information.
+
+9. OUTPUT FORMAT
+
+Return ONLY the structured JSON object.
+
+Do not include:
+
+- Explanations
+- Commentary
+- Markdown
+- Code fences
+- Additional fields
+- Additional text before or after the JSON
+- Any other artifacts
+
+REFER TO THE EXAMPLE TEXT AND EXAMPLE OUTPUT BELOW.
+
+EXAMPLE TEXT
+
+OTIENO C. UPENDO
+Computer Science Student | Data & Systems Engineering
+Email: ucotieno@gmail.com
+Mobile: +254 798 380 239
+Location: Nairobi, Kenya
+GitHub: https://github.com/ucotieno
+LinkedIn:https://linkedin.com/in/ucotieno
+Portfolio:https://portfolio-4w4q.onrender.com/portfolio.html
+SUMMARY
+Third-year Computer Science student (Graduating 2027) at the University of
+Nairobi with hands-on experience building data pipelines, scraping systems,
+and backend APIs. Seeking structured industry exposure through internship
+opportunities to deepen software engineering fundamentals and contribute to
+reliable, scalable systems.
+TECHNICAL SKILLS
+Python, JavaScript
+Algorithms & Data Structures
+SQL
+Data Processing & ETL Workflows
+Machine Learning Fundamentals
+Numpy, Pandas
+Scikit-learn
+Pytorch, Tensorflow
+EXPERIENCE
+Instructor (Contract) | GOMYCODE Kenya
+2024 – Present
+Mentor students in Data Science and Web Development fundamentals.
+Prepare structured learning materials and practical exercises.
+Support learners in debugging and implementing projects.
+Independent Developer (Contract-Based)
+2020 – Present
+Built content extraction pipelines using Python-based tooling.
+Designed structured scraping workflows for reliable data collection.
+Developed backend APIs and ETL processes for analytics systems.
+Delivered contract-based technical solutions with documented outcomes.
+EDUCATION
+University of Nairobi
+BSc. Computer Science (Expected Graduation: 2027)
+LANGUAGES
+English: Fluent
+Swahili: Native
+
+EXAMPLE OUTPUT
+
+{
+    "candidate_name": "OTIENO C. UPENDO",
+    "phone_number": "+254798380239",
+    "email": "ucotieno@gmail.com",
+    "linkedin_url": "https://linkedin.com/in/ucotieno",
+    "github": "https://github.com/ucotieno",
+    "years_of_experience": None,
+    "location": "Nairobi, Kenya",
+    "skills": ["Python", "JavaScript", "Algorithms & Data Structures", "SQL", "Data Processing", "ETL Workflows", "Machine Learning Fundamentals", "Numpy", "Pandas", "Scikit-learn", "Pytorch", "Tensorflow", "Mentorship", "Debugging", "APIs"],
+    "experience": [
+        {
+            "company_name": "GOMYCODE Kenya",
+            "company_location": None,
+            "role_title": "Instructor",
+            "role_description": "Mentor students in Data Science and Web Development fundamentals.\nPrepare structured learning materials and practical exercises.\nSupport learners in debugging and implementing projects.",
+            "start_date": "2024",
+            "end_date": None,
+            "is_current": TRUE
+        },
+        {
+            "company_name": None,
+            "company_location": None,
+            "role_title": "Independent Developer",
+            "role_description": "Built content extraction pipelines using Python-based tooling.\nDesigned structured scraping workflows for reliable data collection.\nDeveloped backend APIs and ETL processes for analytics systems.\nDelivered contract-based technical solutions with documented outcomes.",
+            "start_date": "2024",
+            "end_date": None,
+            "is_current": TRUE
+        }
+    ],
+    "education": [
+        {
+            "insitution_name": "University of Nairobi",
+            "education_level": "UNDEGRADUATE DEGREE",
+            "graduation_year": "2027",
+            "start_date": None,
+            "end_date": None
+        }
+    ]
+}
+
+STRICTLY return only the structured JSON with no extra explanations or artifacts.
+
+Below is the TEXT for your immediate task:
+

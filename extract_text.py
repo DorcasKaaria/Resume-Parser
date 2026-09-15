@@ -243,7 +243,10 @@ if __name__ == "__main__":
         process_directory(sys.argv[1], sys.argv[2]) #process the input directory and output directory specified in the command line arguments
     elif len(sys.argv) == 2:
         result = extract(sys.argv[1]) #extract text from the single resume file specified in the command line argument
-        print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+        resume_dict = result.to_dict()
+        # json.dumps(
+        # , indent=2, ensure_ascii=False)
+        print(resume_dict["text"])
     else: #returnsan error message if the command line arguments are not valid -> this is the case when arguments are less than 2 or greater than 3
         print("Usage:")
         print("  Single file:  python extract_text.py <resume_file>")
