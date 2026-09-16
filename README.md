@@ -1,489 +1,159 @@
-# Resume NER Project — Current State & Next Steps
+# Resume Parser Project Report
 
-## 1. Project Goal
+## 1. Project Overview
 
-Build a resume Named Entity Recognition (NER) system using spaCy to extract structured information from resumes.
+The Resume Parser project explores the use of **Large Language Models (LLMs) for automated entity extraction and relationship detection from resumes**. The objective was to transform unstructured resume data into structured, queryable information that could support candidate profiling, data analysis, and future candidate-job matching applications.
 
-The current model uses 14 entity types:
+The project began with a collection of **91 resume samples** stored in the `resume samples` folder. The dataset was subsequently deduplicated to remove duplicate Word documents where corresponding PDF versions of the same resumes were already available. This process resulted in a **deduplicated dataset of 51 resumes**.
 
-```text
-ACTION
-CERTIFICATION
-COLLABORATION
-COMPANY
-DESIGNATION
-EDUCATION
-EMAIL
-EXPERIENCE
-EXPERTISE
-LANGUAGE
-LOCATION
-OTHER
-PERSON
-SKILL
-```
+Following the extraction and data-cleaning process, the resulting records produced **44 unique candidate profiles**, which were imported into a relational SQLite database for structured storage and analysis.
 
 ---
 
-# 2. Dataset
+## 2. LLM-Based Entity Extraction
 
-The source dataset contains **5,960 standardized resume samples** combined from four datasets:
+This phase focused on using a **Large Language Model (LLM), specifically ChatGPT, as an alternative approach for entity extraction and relationship detection from resumes**.
 
-* Kaggle ATS Dataset — 220 samples
-* HuggingFace NER Dataset — 4,971 samples
-* Resume Corpus Dataset — 224 samples
-* Doccano Dataset — 545 samples
+The model was instructed to extract structured information from each resume, including:
 
-The original format is:
+* Candidate name
+* Target role
+* Years of experience
+* Phone number and email address
+* LinkedIn URL and GitHub profile
+* Location
+* Professional skills
+* Work experience
+* Companies and employers
+* Employment roles
+* Employment dates
+* Educational institutions
+* Degrees and qualifications
+* Graduation years
 
-```json
-{
-  "text": "Full resume text content...",
-  "annotations": [
-    [start_position, end_position, "ENTITY_LABEL"],
-    [start_position, end_position, "ENTITY_LABEL"]
-  ]
-}
-```
+In addition to identifying individual entities, the extraction process captured relationships between them. For example, a candidate could be associated with a specific employer, job role, skill, educational institution, degree, and geographic location.
 
-The dataset is known to be heavily dominated by `SKILL` annotations, particularly because the largest source dataset contains skill annotations.
-
-This class imbalance is therefore considered a known characteristic of the source data rather than something that needs to be rediscovered.
-
----
-
-# 3. Dataset Splits
-
-The original dataset was shuffled with:
-
-```python
-random.seed(42)
-random.shuffle(dataset)
-```
-
-and split into:
-
-```text
-80% → training
-10% → validation
-10% → test
-```
-
-The resulting spaCy files are:
-
-```text
-train.spacy
-validation.spacy
-test.spacy
-```
-
-Current approximate sizes reported by `spacy debug data`:
-
-```text
-Training:   4,768 documents
-Validation:   596 documents
-```
-
-The test set has been created but **has not yet been used in the training workflow**.
+The extracted information was initially stored in **JSON format**, providing a structured representation of the information contained in the original resumes.
 
 ---
 
-# 4. Current Training Workflow
+## 3. Data Transformation and Database Integration
 
-Training currently uses only:
+The extracted JSON data was subsequently mapped into a relational SQLite database using the `import_to_database.py` script.
 
-```text
-train.spacy
-validation.spacy
-```
+The database was designed to normalize the extracted information and preserve relationships between entities. This approach allows candidate information to be stored without unnecessarily duplicating common entities such as skills, companies, locations, institutions, and job titles.
 
-Command:
+The database contains **10 interconnected tables**:
 
-```python
-!python -m spacy train config.cfg \
-    --output ./output \
-    --paths.train ./train.spacy \
-    --paths.dev ./validation.spacy
-```
+1. `candidate`
+2. `location`
+3. `company`
+4. `skill`
+5. `candidate_skill`
+6. `institution`
+7. `degree`
+8. `education`
+9. `role`
+10. `employment`
 
-`test.spacy` is currently untouched.
+The relationships between these tables include **one-to-many, many-to-one, and many-to-many relationships**.
 
-This is intentional.
+For example, candidates can have multiple skills, while a particular skill can belong to multiple candidates. This many-to-many relationship is implemented through the `candidate_skill` junction table.
 
-The test set should remain unused until we have finished model development and debugging.
-
----
-
-# 5. Current spaCy Pipeline
-
-The trained model contains:
-
-```text
-['tok2vec', 'ner']
-```
-
-The trained NER component now correctly contains all 14 labels:
-
-```text
-('ACTION',
- 'CERTIFICATION',
- 'COLLABORATION',
- 'COMPANY',
- 'DESIGNATION',
- 'EDUCATION',
- 'EMAIL',
- 'EXPERIENCE',
- 'EXPERTISE',
- 'LANGUAGE',
- 'LOCATION',
- 'OTHER',
- 'PERSON',
- 'SKILL')
-```
-
-This confirms that the previous problem where the trained model contained:
-
-```text
-NER LABELS = ()
-```
-
-has been fixed.
+Similarly, a candidate can have multiple employment and education records, while companies, roles, institutions, and degrees are stored as reusable entities.
 
 ---
 
-# 6. Important Data Conversion Fix
+## 4. Database Population
 
-The original annotation conversion code had a critical bug.
+The extracted JSON records were mapped to the appropriate database entities and relationships.
 
-A labeled spaCy span was correctly created:
+The resulting database contains **44 unique candidate profiles**, representing the applicants retained in the final candidate dataset.
 
-```python
-span = doc.char_span(
-    start,
-    end,
-    label=label.upper().strip(),
-    alignment_mode="contract"
-)
-```
-
-but was then reconstructed using:
-
-```python
-span = doc[...]
-```
-
-Reconstructing the span discarded its entity label.
-
-This caused the training data to effectively contain entities without their intended labels.
-
-The reconstruction was removed.
-
-The converter now:
-
-1. Validates annotation boundaries.
-2. Trims leading/trailing whitespace from annotation boundaries.
-3. Drops overlapping annotations.
-4. Aligns annotations to spaCy token boundaries.
-5. Keeps the original labeled `Span`.
-6. Assigns the resulting spans to `doc.ents`.
+The relational structure makes it possible to query candidate information across multiple dimensions, including skills, target roles, employment history, education, companies, and geographic location.
 
 ---
 
-# 7. Unicode/Data Cleaning Fix
+## 5. Analytical Objectives
 
-The source data contains malformed Unicode surrogate characters in some records.
+The database was developed to support exploratory analysis of the candidate dataset. The primary analytical questions were:
 
-For example, characters such as:
+1. How many unique candidates were extracted?
+2. What are the most popular skills among candidates?
+3. Which target jobs are candidates most interested in?
+4. Which locations are most represented among candidates?
+5. What degrees and qualifications do candidates hold?
+6. Which degree levels are most common?
+7. Which companies appear most frequently across candidates' employment histories?
+8. Which job titles appear most frequently in candidates' previous experience?
 
-```text
-\ud83d
-```
-
-cannot be properly encoded as UTF-8.
-
-The cleaning function was changed to replace only malformed surrogate code points while preserving character length:
-
-```python
-def clean_text(text):
-    return "".join(
-        " " if 0xD800 <= ord(c) <= 0xDFFF else c
-        for c in text
-    )
-```
-
-This is important because annotation offsets refer to character positions.
-
-The repair therefore preserves the length of the text and does not shift annotation offsets.
+These questions demonstrate how the structured database can be used to move beyond extraction and into **candidate-market intelligence and workforce analysis**.
 
 ---
 
-# 8. Current Data Validation Status
+## 6. Key Findings
 
-After fixing the entity-label loss and annotation handling, `spacy debug data` reports:
+### 6.1 Candidate Population
 
-```text
-4,768 training docs
-596 evaluation docs
+The final database contains **44 unique candidate profiles**. These profiles represent the candidates retained after processing and deduplicating the original resume dataset.
 
-14 label(s)
+### 6.2 Target Roles
 
-✔ Good amount of examples for all labels
-✔ Examples without occurrences available for all labels
-✔ No entities consisting of or starting/ending with whitespace
-✔ No entities crossing sentence boundaries
-```
+The most frequently targeted roles were **Security Controls Assessor** and **Information Security Analyst**, with **three candidates targeting each role**.
 
-The only remaining warning was:
+This concentration indicates that cybersecurity and information security roles represent a significant proportion of the candidate pool and may warrant further investigation when assessing the composition of the applicant dataset.
 
-```text
-219 training examples also in evaluation data
-```
+### 6.3 Previous Job Experience
 
-This indicates duplicate examples between the training and validation sets.
+**Information Security Analyst** was the most frequently occurring previous job title among candidates, appearing in the employment history of **four candidates**. **Security Controls Assessor** followed, appearing among **three candidates**.
 
-It is a data leakage issue that should eventually be fixed, but it is **not the current debugging priority**.
+The concentration of these roles further demonstrates the strong representation of information security and cybersecurity-related professionals within the dataset.
 
----
+### 6.4 Skills
 
-# 9. Current Model Behavior
+**Excel** was the most frequently occurring skill in the extracted candidate profiles, appearing **19 times** across the dataset.
 
-The trained model successfully loads and produces entities.
+This suggests that spreadsheet-based analytical capability is widely represented among the candidates and may be a common foundational skill across the applicant pool.
 
-However, inference on a resume currently produces a strong `SKILL` collapse.
+### 6.5 Companies
 
-Example predictions include:
+**Dell Technologies, SAP NS2, and GDIT** were among the most frequently occurring companies in candidates' employment histories.
 
-```text
-Computer Science -> SKILL
-Systems Engineering -> SKILL
-Email -> SKILL
-Mobile -> SKILL
-Location -> SKILL
-GitHub -> SKILL
-LinkedIn -> SKILL
-Portfolio -> SKILL
-Instructor -> SKILL
-Mentor -> SKILL
-Data Science -> SKILL
-Web Development -> SKILL
-EDUCATION -> SKILL
-LANGUAGES -> SKILL
-English -> SKILL
-Fluent -> SKILL
-```
+The presence of these organizations provides an additional dimension for understanding the professional backgrounds represented within the candidate dataset.
 
-Some predictions are reasonable:
+### 6.6 Educational Qualifications
 
-```text
-Python -> SKILL
-JavaScript -> SKILL
-SQL -> SKILL
-Pandas -> SKILL
-PyTorch -> SKILL
-```
+The dataset contains a strong representation of both **master's and bachelor's degree holders**.
 
-But many structurally different entities are incorrectly classified as `SKILL`.
+* **22 candidates** had master's-level qualifications.
+* **20 candidates** had bachelor's-level qualifications.
 
-Therefore the current problem is:
-
-> **The model has learned the label set, but its predictions are heavily biased toward SKILL.**
+The **Master of Business Administration (MBA)** was the most frequently occurring specific degree, appearing among **5 of the 44 candidates**.
 
 ---
 
-# 10. Main Hypothesis
+## 7. Project Significance
 
-The source dataset is heavily imbalanced toward `SKILL`.
+The project demonstrates how LLM-based extraction can be used to convert large volumes of unstructured resume data into a **structured relational dataset** suitable for analysis.
 
-This is a legitimate possible cause of the model's behavior.
+Instead of treating resumes as standalone documents, the approach transforms them into interconnected entities representing candidates, skills, companies, roles, education, and locations. This creates a foundation for more advanced analytical applications, including:
 
-However, class imbalance is **not yet proven to be the sole cause**.
+* Candidate skills analysis
+* Workforce and labour-market analysis
+* Candidate-job matching
+* Skills gap identification
+* Talent pool segmentation
+* Recruitment intelligence
+* Employer and role analysis
 
-Another important possibility is inconsistent supervision across the four source datasets.
+The project therefore moves beyond simple resume parsing by demonstrating how **LLM-based extraction, relational data modelling, and SQL analysis can be combined to derive structured insights from unstructured candidate data.**
 
-The datasets may differ in:
+## 8. Conclusion
 
-* which entity types they annotate
-* what constitutes a `SKILL`
-* entity boundary conventions
-* annotation density
-* contextual information available for each entity type
+The Resume Parser project successfully established an end-to-end pipeline for transforming unstructured resumes into structured, queryable candidate data.
 
-Combining them may therefore produce a noisy or inconsistent training signal.
+Starting with **91 resume samples**, the dataset was deduplicated to **51 resumes**, resulting in **44 unique candidate profiles** that were subsequently stored in a normalized SQLite database.
 
----
+The project demonstrates the potential of LLMs to support automated information extraction while highlighting the importance of **data normalization, relationship modelling, validation, and structured database design** when converting extracted information into a reliable analytical dataset.
 
-# 11. Next Debugging Experiment
-
-Do **not retrain yet**.
-
-The next experiment is to test the trained model against examples from its own training data.
-
-The question we need to answer is:
-
-> **Can the model correctly reproduce entities it was trained on?**
-
-This gives us a clean distinction between two possibilities.
-
-### Case A — Training examples are also mostly predicted as SKILL
-
-Then the problem is likely within the training process/data.
-
-Possible causes include:
-
-* class imbalance
-* inconsistent annotations
-* conflicting label semantics
-* insufficient training
-* model configuration
-* other training dynamics
-
-### Case B — Training examples are predicted reasonably well, but the user's resume is mostly SKILL
-
-Then training itself is working, and the problem is primarily:
-
-> **generalization to the target resume/domain.**
-
-That would point us toward dataset/domain mismatch rather than immediately changing the model architecture.
-
----
-
-# 12. Test Set Policy
-
-`test.spacy` should **not be used yet**.
-
-Current workflow:
-
-```text
-train.spacy
-    ↓
-model training
-    ↓
-validation.spacy
-    ↓
-development/debugging
-```
-
-The test set should eventually be used as a final, untouched evaluation:
-
-```text
-train.spacy
-    ↓
-training
-
-validation.spacy
-    ↓
-model selection / debugging
-
-test.spacy
-    ↓
-FINAL evaluation
-```
-
-We should avoid repeatedly evaluating against `test.spacy` while making model changes because that effectively turns the test set into another validation set.
-
----
-
-# 13. Current Training Configuration
-
-The current pipeline is:
-
-```text
-tok2vec
-ner
-```
-
-The configuration uses:
-
-```text
-max_epochs = 0
-max_steps = 20000
-eval_frequency = 200
-patience = 1600
-dropout = 0.1
-learn_rate = 0.001
-```
-
-The model is currently a CPU/non-transformer spaCy configuration.
-
-We intentionally established this as the baseline before considering transformers/GPU-based approaches.
-
----
-
-# 14. Current Project State
-
-### Fixed
-
-* [x] Model path corrected
-* [x] PDF text extraction working
-* [x] spaCy pipeline loading
-* [x] NER component present
-* [x] Entity labels successfully registered
-* [x] Annotation-label loss fixed
-* [x] Malformed Unicode surrogate issue handled
-* [x] Annotation whitespace handling fixed
-* [x] Overlapping/invalid annotation handling implemented
-* [x] `spacy debug data` passes NER validation
-
-### Known but Deferred
-
-* [ ] Training/validation duplicate examples
-* [ ] Class imbalance
-* [ ] Cross-dataset annotation inconsistency
-* [ ] Potential domain mismatch
-* [ ] Model performance optimization
-* [ ] GPU/transformer experimentation
-
-### Current Problem
-
-* [ ] Model predicts overwhelmingly `SKILL`
-
----
-
-# 15. Immediate Next Step
-
-**Do not modify the model yet.**
-
-First evaluate the trained model on a small sample of its own training data.
-
-Goal:
-
-```text
-TRAINING EXAMPLE
-       ↓
-GROUND TRUTH
-       ↓
-MODEL PREDICTION
-       ↓
-COMPARE
-```
-
-This is the next debugging step before changing:
-
-* class weights
-* sampling
-* architecture
-* learning rate
-* dropout
-* epochs/steps
-* transformers
-* GPU configuration
-
-The result of this experiment will determine what we investigate next.
-
----
-
-# 16. Important Principle Going Forward
-
-Do not fix multiple things at once.
-
-For each debugging cycle:
-
-```text
-1. Identify one hypothesis
-2. Run one targeted experiment
-3. Inspect the result
-4. Decide the next change
-5. Only then modify the training pipeline
-```
-
-The current baseline should be preserved so that future changes can be compared against it.
+The resulting database provides a foundation for further evaluation of extraction accuracy and for developing more advanced candidate, skills, and labour-market analytics.
