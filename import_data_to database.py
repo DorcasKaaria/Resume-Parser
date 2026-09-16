@@ -3,7 +3,7 @@
 Import extracted resume JSON into the normalized SQLite resume database.
 
 Usage:
-    python import_resumes.py resumes.db parsed_resumes.json
+    python import_data_to_database.py resumes.db parsed_resumes.json
 
 The importer:
 - Reuses existing location/company/skill/institution/degree/role rows.
