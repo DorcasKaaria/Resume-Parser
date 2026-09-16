@@ -9,6 +9,7 @@
 .environ_var
 file_extract.py
 models/
+archive/export_to_database.py
 /extracted_outputs
 /resume_samples
 
