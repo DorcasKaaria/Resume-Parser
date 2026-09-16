@@ -5,6 +5,7 @@ The output MUST follow exactly this structure:
 {
     "candidate_name": "",
     "phone_number": "",
+    "target_role":"",
     "email": "",
     "linkedin_url": "",
     "github": "",
@@ -99,12 +100,53 @@ If a start or end date is not available, return None.
 
 "education_level" must use one of the following values:
 
-- MASTERS DEGREE
-- PHD
-- UNDERGRADUATE DEGREE
-- DIPLOMA
-- HIGH SCHOOL
-- PRIMARY SCHOOL
+MASTERS
+Return the actual masters program when the qualification explicitly indicates a master's-level qualification, including:
+
+Master of Science / MSc
+Master of Arts / MA
+Master's Degree
+Masters in [field]
+Master's in [field]
+
+PHD
+Return actual doctorate when the qualification indicates doctoral-level education, including:
+
+Doctor of Philosophy / PhD
+PhD in [field]
+Doctorate
+Doctoral Degree
+Doctor of [field]
+
+UNDERGRADUATE DEGREE
+Return actual degree when the qualification indicates a bachelor's or other undergraduate degree, including:
+
+Bachelor of Science / BSc / BS / B.S.
+Bachelor of Arts / BA / B.A.
+Bachelor's Degree
+Bachelor's in [field]
+BSc in [field]
+BA in [field]
+Applied Science degree
+Associate Degree / Associate in [field]
+Any other explicitly stated undergraduate-level bachelor's or associate qualification
+
+DIPLOMA
+Return diploma program when the qualification explicitly identifies a diploma, including:
+
+Diploma
+Diploma in [field]
+Higher Diploma
+Advanced Diploma
+Graduate Diploma
+National Diploma
+Technical Diploma
+
+HIGH SCHOOL
+Return HIGH SCHOOL only when:
+
+No higher-level qualification is explicitly available in the resume, AND
+A high-school qualification or education is explicitly mentioned.
 
 Map the candidate's explicitly stated qualification to the most appropriate value from this list.
 
@@ -123,13 +165,28 @@ Otherwise, set it to FALSE.
 
 Do not infer that an experience is current based solely on the absence of an end date.
 
-8. MISSING INFORMATION
+8.TARGET ROLE
+
+Extract the specific role or position the candidate states they are seeking or applying for at the beginning of the resume. 
+
+Include general roles (e.g., Data Analyst, Software Engineer, Cybersecurity Analyst) and explicitly stated target opportunities 
+such as internships, apprenticeships, or fellowships, including the associated field or role where mentioned (e.g., Nutrition Intern, Program Management Fellowship). 
+
+Do not infer role from the work experience, or make up a role based on skills, certifications or education.
+
+Add a target role that is explicitly mentioned in the resume. 
+
+If the target role is more than one, return all of them.
+
+If no target role is explicitly stated, return null. 
+
+9. MISSING INFORMATION
 
 If information required by the output structure is not available or cannot be determined directly from the resume text, return None.
 
 Do not invent, calculate, infer, or hallucinate information.
 
-9. OUTPUT FORMAT
+10. OUTPUT FORMAT
 
 Return ONLY the structured JSON object.
 
@@ -193,6 +250,7 @@ EXAMPLE OUTPUT
 
 {
     "candidate_name": "OTIENO C. UPENDO",
+    "target_role": "Data & Systems Engineering"
     "phone_number": "+254798380239",
     "email": "ucotieno@gmail.com",
     "linkedin_url": "https://linkedin.com/in/ucotieno",
@@ -223,7 +281,7 @@ EXAMPLE OUTPUT
     "education": [
         {
             "insitution_name": "University of Nairobi",
-            "education_level": "UNDEGRADUATE DEGREE",
+            "education_level": "BSc. Computer Science",
             "graduation_year": "2027",
             "start_date": None,
             "end_date": None

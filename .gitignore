@@ -6,7 +6,9 @@
 *.doc
 *.docx
 
+.environ_var
 file_extract.py
+models/
 /extracted_outputs
 /resume_samples
 
